@@ -1,18 +1,22 @@
 import mongoose from 'mongoose';
 import { UserModel, IUser } from './user.js';
 import { OrganizationModel, IOrganization } from './organization.js';
+import { BookModel, IBook } from './book.js';
 
 async function runDemo() {
   try {
     // --- 1. CONNECTION ---
     await mongoose.connect('mongodb://127.0.0.1:27017/ea_mongoose');
     console.log('🚀 Connected to MongoDB');
+    //^ await: no s'executa res més fins q es fa la connexió
 
     // --- 2. CLEANING (Idempotency) ---
     // Engineering Rule: Tests/Demos must be repeatable.
     console.log('🧹 Cleaning database...');
     await UserModel.deleteMany({});
     await OrganizationModel.deleteMany({});
+    await BookModel.deleteMany({});
+    //^ Esborra tots els documents JSON (per això hi ha '{}' com a filtre)
 
     // --- 3. SEEDING (The missing part) ---
     console.log('🌱 Seeding data...');
@@ -26,6 +30,8 @@ async function runDemo() {
     // We map existing IDs to link them dynamically
     const initechId = orgs[0]._id;
     const umbrellaId = orgs[1]._id;
+    //^ Quan enviem a Mongo, normalment retorna l'obj amb l'id generat
+    //^ Aquí és quan es generen
 
     // 3.2 Create Users linked to Orgs
     // Manual referencial integrity: We use the actual _id from the created organizations to ensure valid references.
@@ -48,9 +54,11 @@ async function runDemo() {
     const bill = await UserModel.findOne({ name: 'Bill' });
     console.log(bill);
     
-    // Partial<IUser> indicates that the resulting object may have only some of the IUser fields, which is useful when we select only a subset of fields.
+    // Partial<IUser> indicates that the resulting object may have only some of the IUser fields, 
+    // which is useful when we select only a subset of fields.
     // select() allows us to specify which fields we want to retrieve. 
-    // lean() returns a plain JS object instead of a Mongoose Document, which is more lightweight if we don't need the extra methods.
+    // lean() returns a plain JS object instead of a Mongoose Document, 
+    // which is more lightweight if we don't need the extra methods.
   
     const userPartial: Partial<IUser> | null  = await UserModel.findOne({ name: 'Bill' })
       .select('name email')
@@ -96,7 +104,77 @@ async function runDemo() {
       }}
     ]);
 
-    console.table(stats);
+//^CRUD EXERCISI
+
+//CREATE
+console.log('\n EXERCISI CRUD:');
+console.log('\n ✅ CREATE:');
+const bookData = [
+  { title: 'Romeo and Juliette', author: users[2]._id, genre: 'ROMANCE' },
+  { title: 'Harry Potter', author: users[0]._id, genre: 'FANTASY' },
+  { title: 'The Hunger Games', author: users[1]._id}
+]
+
+const books = await BookModel.insertMany(bookData);
+console.log(`Added ${books.length} books`);
+console.log(books);
+
+
+//READ
+console.log('\n🔍 READ:');
+const book: IBook | null = await BookModel.findById(books[0]._id);
+console.log(`Book: ${book?.title}. Author ID: ${book?.author}. Genre: ${book?.genre}`);
+
+const harrypotter = await BookModel.findOne({ title: 'Harry Potter' });
+console.log(harrypotter);
+
+//POPULATE
+console.log('\n🔍 POPULATE:');
+const populatedBooks = await Promise.all(
+  books.map((book) =>
+    BookModel.findById(book._id)
+      .populate('author')
+      .lean()
+  )
+);
+
+populatedBooks
+  .filter(Boolean)
+  .forEach((book) => {
+    const authorDetails = book?.author as unknown as IUser;
+
+    console.log(
+      `\nThe author of ${book?.title} is ${authorDetails?.name} with the role of ${authorDetails?.role}.`
+    );
+    console.log(book);
+  });
+/*
+const harryAuthor = await BookModel.findById(books[1]._id)
+      .populate('author')
+      .lean();
+const authorDetails = harryAuthor?.author as unknown as IUser;
+console.log(harryAuthor);
+console.log(`The author of ${harryAuthor?.title} is ${authorDetails?.name} with the role of ${authorDetails?.role}.`);
+*/
+
+//UPDATE
+console.log('\n🔧 UPDATE:');
+const update = await BookModel.updateOne({ _id:books[0]._id}, { title: 'Romeo and Juliet' });
+const updatedBook = await BookModel.findOne({ title: 'Romeo and Juliet' });
+console.log(updatedBook);
+
+
+//DELETE
+console.log('\n🗑️ DELETE:');
+const deleteBook = await BookModel.deleteOne({ _id: books[2]._id });
+
+//READ (again)
+console.log('\n🔍 LIST ALL:');
+const listAll = await BookModel.find({}).lean();
+console.log(listAll);
+
+
+
 
   } catch (err) {
     console.error('❌ Error:', err);

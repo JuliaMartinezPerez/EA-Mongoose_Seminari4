@@ -1,3 +1,12 @@
+# Exercisi Seminari
+
+S'ha utilitzat https://mongoosejs.com/docs/guide.html i https://www.w3schools.com/mongodb per a fer les operacions del CRUD no trobades en el codi d'exemple (UPDATE, DELETE, listAll...).
+
+Chat GPT m'ha ajudat amb el populate.
+
+M'he basat completament en el codi d'exemple per fer la resta.
+
+
 # EA Node.js + TypeScript + Mongoose
 
 ## Requisitos Previos
@@ -37,5 +46,5 @@ tsc
 
 Ejecutar JS
 ```
-node dist/mongoogse.js
+node dist/mongoose.js
 ```

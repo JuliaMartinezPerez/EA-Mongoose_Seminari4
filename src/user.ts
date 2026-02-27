@@ -6,6 +6,7 @@ export interface IUser {
   email: string;
   role: 'ADMIN' | 'EDITOR' | 'USER';
   organization: Types.ObjectId; // Referència forta a l'altra col·lecció
+  //^ Utilitzem l'id, no un JSON. Es potdrà utilitzar per saltar d'una col·lecció a l'altra
 }
 
 const userSchema = new Schema<IUser>({
